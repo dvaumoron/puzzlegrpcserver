@@ -26,12 +26,17 @@ import (
 	"google.golang.org/grpc"
 )
 
+type GRPCServer interface {
+	grpc.ServiceRegistrar
+	Start()
+}
+
 type server struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
 }
 
-func New(opts ...grpc.ServerOption) grpc.ServiceRegistrar {
+func New(opts ...grpc.ServerOption) GRPCServer {
 	if godotenv.Overload() == nil {
 		log.Println("Loaded .env file")
 	}
