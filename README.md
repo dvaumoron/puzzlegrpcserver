@@ -1,2 +1,3 @@
 # puzzlegrpcserver
-Common package to create gRPC server.
+
+Common package to create [gRPC](https://grpc.io/) server.
