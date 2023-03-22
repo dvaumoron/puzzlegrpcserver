@@ -24,6 +24,8 @@ import (
 
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	pb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type GRPCServer interface {
@@ -46,7 +48,13 @@ func New(opts ...grpc.ServerOption) GRPCServer {
 		log.Fatal("Failed to listen :", err)
 	}
 
-	return server{grpcServer: grpc.NewServer(opts...), listener: lis}
+	grpcServer := grpc.NewServer(opts...)
+
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
+	pb.RegisterHealthServer(grpcServer, healthServer)
+
+	return server{grpcServer: grpcServer, listener: lis}
 }
 
 func (s server) RegisterService(desc *grpc.ServiceDesc, impl any) {
