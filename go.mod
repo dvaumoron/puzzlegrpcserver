@@ -3,7 +3,7 @@ module github.com/dvaumoron/puzzlegrpcserver
 go 1.19
 
 require (
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.5.1
 	google.golang.org/grpc v1.54.0
 )
 
