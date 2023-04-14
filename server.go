@@ -45,7 +45,7 @@ func New(opts ...grpc.ServerOption) GRPCServer {
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
-		log.Fatal("Failed to listen :", err)
+		log.Fatalln("Failed to listen :", err)
 	}
 
 	grpcServer := grpc.NewServer(opts...)
@@ -64,6 +64,6 @@ func (s server) RegisterService(desc *grpc.ServiceDesc, impl any) {
 func (s server) Start() {
 	log.Println("Listening at", s.listener.Addr())
 	if err := s.grpcServer.Serve(s.listener); err != nil {
-		log.Fatal("Failed to serve :", err)
+		log.Fatalln("Failed to serve :", err)
 	}
 }
