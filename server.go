@@ -38,7 +38,7 @@ type GRPCServer struct {
 	Logger   *zap.Logger
 }
 
-func New(opts ...grpc.ServerOption) GRPCServer {
+func Make(opts ...grpc.ServerOption) GRPCServer {
 	logger := puzzlelogger.New()
 	grpclog.SetLoggerV2(grpclogger.New(logger))
 
