@@ -30,42 +30,39 @@ import (
 	pb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-type GRPCServer interface {
-	grpc.ServiceRegistrar
-	Start()
-}
+var _ grpc.ServiceRegistrar = GRPCServer{}
 
-type server struct {
-	grpcServer *grpc.Server
-	listener   net.Listener
-	Logger     *zap.Logger
+type GRPCServer struct {
+	inner    *grpc.Server
+	listener net.Listener
+	Logger   *zap.Logger
 }
 
 func New(opts ...grpc.ServerOption) GRPCServer {
 	logger := puzzlelogger.New()
+	grpclog.SetLoggerV2(grpclogger.New(logger))
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
 		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
-	grpclog.SetLoggerV2(grpclogger.New(logger))
 	grpcServer := grpc.NewServer(opts...)
 
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
 	pb.RegisterHealthServer(grpcServer, healthServer)
 
-	return server{grpcServer: grpcServer, listener: lis, Logger: logger}
+	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger}
 }
 
-func (s server) RegisterService(desc *grpc.ServiceDesc, impl any) {
-	s.grpcServer.RegisterService(desc, impl)
+func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
+	s.inner.RegisterService(desc, impl)
 }
 
-func (s server) Start() {
+func (s GRPCServer) Start() {
 	s.Logger.Info("Listening", zap.String("address", s.listener.Addr().String()))
-	if err := s.grpcServer.Serve(s.listener); err != nil {
+	if err := s.inner.Serve(s.listener); err != nil {
 		s.Logger.Fatal("Failed to serve", zap.Error(err))
 	}
 }
