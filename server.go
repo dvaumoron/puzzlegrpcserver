@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/dvaumoron/puzzlelogger"
+	"github.com/dvaumoron/puzzlelogger/grpclogger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -48,7 +49,7 @@ func New(opts ...grpc.ServerOption) GRPCServer {
 		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
-	grpclog.SetLoggerV2(loggerWrapper{inner: logger})
+	grpclog.SetLoggerV2(grpclogger.New(logger))
 	grpcServer := grpc.NewServer(opts...)
 
 	healthServer := health.NewServer()
