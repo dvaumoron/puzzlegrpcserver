@@ -3,7 +3,7 @@ module github.com/dvaumoron/puzzlegrpcserver
 go 1.19
 
 require (
-	github.com/dvaumoron/puzzlelogger v1.2.0
+	github.com/dvaumoron/puzzlelogger v1.2.1
 	go.uber.org/zap v1.24.0
 	google.golang.org/grpc v1.54.0
 )
