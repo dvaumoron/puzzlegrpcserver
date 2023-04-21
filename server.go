@@ -18,11 +18,11 @@
 package puzzlegrpcserver
 
 import (
-	"log"
 	"net"
 	"os"
 
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	pb "google.golang.org/grpc/health/grpc_health_v1"
@@ -36,16 +36,17 @@ type GRPCServer interface {
 type server struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
+	logger     *zap.Logger
 }
 
-func New(opts ...grpc.ServerOption) GRPCServer {
+func New(logger *zap.Logger, opts ...grpc.ServerOption) GRPCServer {
 	if godotenv.Overload() == nil {
-		log.Println("Loaded .env file")
+		logger.Info("Loaded .env file")
 	}
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
-		log.Fatalln("Failed to listen :", err)
+		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
 	grpcServer := grpc.NewServer(opts...)
@@ -54,7 +55,7 @@ func New(opts ...grpc.ServerOption) GRPCServer {
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
 	pb.RegisterHealthServer(grpcServer, healthServer)
 
-	return server{grpcServer: grpcServer, listener: lis}
+	return server{grpcServer: grpcServer, listener: lis, logger: logger}
 }
 
 func (s server) RegisterService(desc *grpc.ServiceDesc, impl any) {
@@ -62,8 +63,8 @@ func (s server) RegisterService(desc *grpc.ServiceDesc, impl any) {
 }
 
 func (s server) Start() {
-	log.Println("Listening at", s.listener.Addr())
+	s.logger.Info("Listening", zap.String("address", s.listener.Addr().String()))
 	if err := s.grpcServer.Serve(s.listener); err != nil {
-		log.Fatalln("Failed to serve :", err)
+		s.logger.Fatal("Failed to serve", zap.Error(err))
 	}
 }
