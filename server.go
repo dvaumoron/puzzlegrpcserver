@@ -18,17 +18,22 @@
 package puzzlegrpcserver
 
 import (
+	"context"
 	"net"
 	"os"
 
-	puzzlelogger "github.com/dvaumoron/puzzletelemetry/logger"
+	"github.com/dvaumoron/puzzletelemetry"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/sdk/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	pb "google.golang.org/grpc/health/grpc_health_v1"
 )
+
+const grpcKey = "PuzzleGRPCServer"
 
 var _ grpc.ServiceRegistrar = GRPCServer{}
 
@@ -36,10 +41,12 @@ type GRPCServer struct {
 	inner    *grpc.Server
 	listener net.Listener
 	Logger   *otelzap.Logger
+	tp       *trace.TracerProvider
+	Tracer   oteltrace.Tracer
 }
 
-func Make(opts ...grpc.ServerOption) GRPCServer {
-	logger := puzzlelogger.New()
+func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCServer {
+	logger, tp := puzzletelemetry.Init(serviceName, version)
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
@@ -57,7 +64,8 @@ func Make(opts ...grpc.ServerOption) GRPCServer {
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
 	pb.RegisterHealthServer(grpcServer, healthServer)
 
-	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger}
+	tracer := tp.Tracer(grpcKey)
+	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger, tp: tp, Tracer: tracer}
 }
 
 func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
@@ -65,8 +73,19 @@ func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
 }
 
 func (s GRPCServer) Start() {
-	s.Logger.Info("Listening", zap.String("address", s.listener.Addr().String()))
-	if err := s.inner.Serve(s.listener); err != nil {
+	tp := s.tp
+	ctx := context.Background()
+	_, startSpan := s.Tracer.Start(ctx, "start")
+	s.Logger.InfoContext(ctx, "Listening", zap.String("address", s.listener.Addr().String()))
+	startSpan.End()
+
+	err := s.inner.Serve(s.listener)
+	if err2 := tp.Shutdown(context.Background()); err2 != nil {
+		_, stopSpan := s.Tracer.Start(ctx, "shutdown")
+		s.Logger.WarnContext(ctx, "Failed to shutdown telemetry", zap.Error(err2))
+		stopSpan.End()
+	}
+	if err != nil {
 		s.Logger.Fatal("Failed to serve", zap.Error(err))
 	}
 }
