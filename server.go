@@ -77,9 +77,9 @@ func (s GRPCServer) Start() {
 	ctx := context.Background()
 	_, startSpan := s.Tracer.Start(ctx, "start")
 	s.Logger.InfoContext(ctx, "Listening", zap.String("address", s.listener.Addr().String()))
-	startSpan.End()
 
 	err := s.inner.Serve(s.listener)
+	startSpan.End()
 	if err2 := tp.Shutdown(context.Background()); err2 != nil {
 		_, stopSpan := s.Tracer.Start(ctx, "shutdown")
 		s.Logger.WarnContext(ctx, "Failed to shutdown telemetry", zap.Error(err2))
