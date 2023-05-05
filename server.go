@@ -48,9 +48,13 @@ type GRPCServer struct {
 func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCServer {
 	logger, tp := puzzletelemetry.Init(serviceName, version)
 
+	tracer := tp.Tracer(grpcKey)
+	ctx, initSpan := tracer.Start(context.Background(), "initialization")
+	defer initSpan.End()
+
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
-		logger.Fatal("Failed to listen", zap.Error(err))
+		logger.FatalContext(ctx, "Failed to listen", zap.Error(err))
 	}
 
 	augmentedOpts := make([]grpc.ServerOption, 0, len(opts)+2)
@@ -64,7 +68,6 @@ func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCSer
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
 	pb.RegisterHealthServer(grpcServer, healthServer)
 
-	tracer := tp.Tracer(grpcKey)
 	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger, tp: tp, Tracer: tracer}
 }
 
