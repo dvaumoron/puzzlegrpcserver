@@ -85,7 +85,7 @@ func (s GRPCServer) Start() {
 
 	if err2 := s.TracerProvider.Shutdown(context.Background()); err2 != nil {
 		_, stopSpan := s.tracer.Start(ctx, "shutdown")
-		s.Logger.WarnContext(ctx, "Failed to shutdown telemetry", zap.Error(err2))
+		s.Logger.WarnContext(ctx, "Failed to shutdown trace provider", zap.Error(err2))
 		stopSpan.End()
 	}
 	if err != nil {
