@@ -21,11 +21,11 @@ import (
 	"net"
 	"os"
 
-	"github.com/dvaumoron/puzzlelogger"
-	"github.com/dvaumoron/puzzlelogger/grpclogger"
+	puzzlelogger "github.com/dvaumoron/puzzletelemetry/logger"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/health"
 	pb "google.golang.org/grpc/health/grpc_health_v1"
 )
@@ -35,19 +35,23 @@ var _ grpc.ServiceRegistrar = GRPCServer{}
 type GRPCServer struct {
 	inner    *grpc.Server
 	listener net.Listener
-	Logger   *zap.Logger
+	Logger   *otelzap.Logger
 }
 
 func Make(opts ...grpc.ServerOption) GRPCServer {
 	logger := puzzlelogger.New()
-	grpclog.SetLoggerV2(grpclogger.New(logger))
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
 		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
-	grpcServer := grpc.NewServer(opts...)
+	augmentedOpts := make([]grpc.ServerOption, 0, len(opts)+2)
+	augmentedOpts = append(augmentedOpts, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+	augmentedOpts = append(augmentedOpts, grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+	augmentedOpts = append(augmentedOpts, opts...)
+
+	grpcServer := grpc.NewServer(augmentedOpts...)
 
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
