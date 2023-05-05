@@ -38,11 +38,11 @@ const grpcKey = "PuzzleGRPCServer"
 var _ grpc.ServiceRegistrar = GRPCServer{}
 
 type GRPCServer struct {
-	inner    *grpc.Server
-	listener net.Listener
-	Logger   *otelzap.Logger
-	tp       *trace.TracerProvider
-	Tracer   oteltrace.Tracer
+	inner          *grpc.Server
+	listener       net.Listener
+	Logger         *otelzap.Logger
+	TracerProvider *trace.TracerProvider
+	tracer         oteltrace.Tracer
 }
 
 func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCServer {
@@ -68,7 +68,7 @@ func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCSer
 	healthServer.SetServingStatus("", pb.HealthCheckResponse_SERVING)
 	pb.RegisterHealthServer(grpcServer, healthServer)
 
-	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger, tp: tp, Tracer: tracer}
+	return GRPCServer{inner: grpcServer, listener: lis, Logger: logger, TracerProvider: tp, tracer: tracer}
 }
 
 func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
@@ -76,16 +76,16 @@ func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
 }
 
 func (s GRPCServer) Start() {
-	tp := s.tp
+	tp := s.TracerProvider
 	ctx := context.Background()
 
-	_, startSpan := s.Tracer.Start(ctx, "start")
+	_, startSpan := s.tracer.Start(ctx, "start")
 	s.Logger.InfoContext(ctx, "Listening", zap.String("address", s.listener.Addr().String()))
 	err := s.inner.Serve(s.listener)
 	startSpan.End()
 
 	if err2 := tp.Shutdown(context.Background()); err2 != nil {
-		_, stopSpan := s.Tracer.Start(ctx, "shutdown")
+		_, stopSpan := s.tracer.Start(ctx, "shutdown")
 		s.Logger.WarnContext(ctx, "Failed to shutdown telemetry", zap.Error(err2))
 		stopSpan.End()
 	}
