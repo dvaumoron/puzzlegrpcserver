@@ -76,7 +76,6 @@ func (s GRPCServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
 }
 
 func (s GRPCServer) Start() {
-	tp := s.TracerProvider
 	ctx := context.Background()
 
 	_, startSpan := s.tracer.Start(ctx, "start")
@@ -84,7 +83,7 @@ func (s GRPCServer) Start() {
 	err := s.inner.Serve(s.listener)
 	startSpan.End()
 
-	if err2 := tp.Shutdown(context.Background()); err2 != nil {
+	if err2 := s.TracerProvider.Shutdown(context.Background()); err2 != nil {
 		_, stopSpan := s.tracer.Start(ctx, "shutdown")
 		s.Logger.WarnContext(ctx, "Failed to shutdown telemetry", zap.Error(err2))
 		stopSpan.End()
