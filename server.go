@@ -33,7 +33,7 @@ import (
 	pb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-const grpcKey = "PuzzleGRPCServer"
+const grpcKey = "puzzleGRPCServer"
 
 var _ grpc.ServiceRegistrar = GRPCServer{}
 
