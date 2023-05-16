@@ -25,8 +25,8 @@ import (
 	"github.com/dvaumoron/puzzletelemetry"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel/sdk/trace"
-	oteltrace "go.opentelemetry.io/otel/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -41,8 +41,8 @@ type GRPCServer struct {
 	inner          *grpc.Server
 	listener       net.Listener
 	Logger         *otelzap.Logger
-	TracerProvider *trace.TracerProvider
-	tracer         oteltrace.Tracer
+	TracerProvider *sdktrace.TracerProvider
+	tracer         trace.Tracer
 }
 
 func Make(serviceName string, version string, opts ...grpc.ServerOption) GRPCServer {
