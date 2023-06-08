@@ -3,7 +3,7 @@ module github.com/dvaumoron/puzzlegrpcserver
 go 1.19
 
 require (
-	github.com/dvaumoron/puzzletelemetry v1.1.0
+	github.com/dvaumoron/puzzletelemetry v1.1.1
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.41.1
 	go.opentelemetry.io/otel/sdk v1.15.1
