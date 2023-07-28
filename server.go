@@ -51,7 +51,6 @@ func Init(serviceName string, version string, opts ...grpc.ServerOption) (contex
 
 	tracer := tp.Tracer(grpcKey)
 	ctx, initSpan := tracer.Start(context.Background(), "initialization")
-	defer initSpan.End()
 
 	lis, err := net.Listen("tcp", ":"+os.Getenv("SERVICE_PORT"))
 	if err != nil {
